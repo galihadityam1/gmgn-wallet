@@ -48,9 +48,9 @@ Ringkasan wallet menampilkan:
 
 Kolom token:
 
-- `MY VALUE`: nilai posisi kamu saat ini.
+- `MY VALUE`: estimasi modal/cost basis posisi dari nilai sekarang dan unrealized PnL.
 - `MKT CAP`: market cap token dari metadata GMGN.
-- `EST. RETURN`: estimasi nilai jika posisi dijual di harga sekarang.
+- `EST. RETURN`: estimasi nilai posisi sekarang jika dijual di harga saat ini.
 - `REALIZED PNL`: PnL realized dalam persen.
 - `UNREALIZED PNL`: PnL belum terealisasi dalam USD dan persen.
 

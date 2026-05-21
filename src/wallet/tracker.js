@@ -30,7 +30,10 @@ class WalletTracker {
           getSolBalance(this.config, address),
           getSolPriceUsd(),
         ]);
-        return normalizeWalletHoldings(address, raw, { solBalance, solPriceUsd });
+        return normalizeWalletHoldings(address, raw, {
+          solBalance,
+          solPriceUsd,
+        });
       } catch (err) {
         return {
           address,
@@ -51,11 +54,20 @@ class WalletTracker {
 }
 
 function normalizeWalletHoldings(address, raw, extras = {}) {
-  const holdings = (raw?.list || raw?.holdings || raw?.data?.list || raw?.data?.holdings || [])
+  const holdings = (
+    raw?.list ||
+    raw?.holdings ||
+    raw?.data?.list ||
+    raw?.data?.holdings ||
+    []
+  )
     .map(normalizeHolding)
-    .filter((holding) => holding.valueUsd > 0 || holding.amount > 0);
+    .filter((holding) => holding.currentValueUsd > 0 || holding.valueUsd > 0 || holding.amount > 0);
   const solBalance = normalizeSolBalance(raw, extras);
-  const tokenValueUsd = holdings.reduce((sum, holding) => sum + (holding.valueUsd || 0), 0);
+  const tokenValueUsd = holdings.reduce(
+    (sum, holding) => sum + (holding.currentValueUsd || holding.estimatedReturnUsd || holding.valueUsd || 0),
+    0,
+  );
 
   return {
     address,
@@ -69,18 +81,35 @@ function normalizeWalletHoldings(address, raw, extras = {}) {
 
 function normalizeHolding(row) {
   const token = row?.token || {};
-  const valueUsd = firstFinite(
+  const currentValueUsd = firstFinite(
     row.usd_value,
     row.usdValue,
     row.value_usd,
     row.valueUsd,
     row.current_value_usd,
   );
-  const amount = firstFinite(row.amount, row.balance, row.token_amount, row.tokenAmount);
-  const price = firstFinite(token.price, row.price, token.price_usd, row.price_usd);
+  const amount = firstFinite(
+    row.amount,
+    row.balance,
+    row.token_amount,
+    row.tokenAmount,
+  );
+  const price = firstFinite(
+    token.price,
+    row.price,
+    token.price_usd,
+    row.price_usd,
+  );
   const totalSupply = firstFinite(token.total_supply, token.totalSupply);
-  const computedMarketCap = Number.isFinite(price) && Number.isFinite(totalSupply) ? price * totalSupply : null;
-  const realizedRatio = firstFinite(row.realized_profit_pnl, row.realizedPnlRatio, row.realized_pnl_ratio);
+  const computedMarketCap =
+    Number.isFinite(price) && Number.isFinite(totalSupply)
+      ? price * totalSupply
+      : null;
+  const realizedRatio = firstFinite(
+    row.realized_profit_pnl,
+    row.realizedPnlRatio,
+    row.realized_pnl_ratio,
+  );
   const unrealizedRatio = firstFinite(
     row.unrealized_profit_pnl,
     row.unrealizedPnlRatio,
@@ -92,25 +121,52 @@ function normalizeHolding(row) {
     row.unrealizedProfitUsd,
     row.unrealizedPnlUsd,
   );
+  const costBasisUsd = deriveCostBasisUsd({
+    currentValueUsd,
+    unrealizedRatio,
+    directUnrealizedUsd,
+  });
+  const unrealizedPnlUsd = Number.isFinite(currentValueUsd) && Number.isFinite(costBasisUsd)
+    ? currentValueUsd - costBasisUsd
+    : directUnrealizedUsd;
 
   return {
-    address: token.address || token.token_address || row.token_address || row.address || "",
+    address:
+      token.address ||
+      token.token_address ||
+      row.token_address ||
+      row.address ||
+      "",
     symbol: token.symbol || row.symbol || "UNKNOWN",
     amount,
-    valueUsd,
-    marketCapUsd: firstFinite(token.market_cap, token.marketCap, computedMarketCap),
-    estimatedReturnUsd: Number.isFinite(unrealizedRatio)
-      ? valueUsd * (1 + unrealizedRatio)
-      : valueUsd + (Number.isFinite(directUnrealizedUsd) ? directUnrealizedUsd : 0),
+    valueUsd: costBasisUsd,
+    currentValueUsd,
+    marketCapUsd: firstFinite(
+      token.market_cap,
+      token.marketCap,
+      computedMarketCap,
+    ),
+    estimatedReturnUsd: currentValueUsd,
     realizedPnlPct: Number.isFinite(realizedRatio) ? realizedRatio * 100 : null,
-    unrealizedPnlUsd: Number.isFinite(directUnrealizedUsd)
-      ? directUnrealizedUsd
-      : Number.isFinite(unrealizedRatio)
-        ? valueUsd * unrealizedRatio
-        : null,
-    unrealizedPnlPct: Number.isFinite(unrealizedRatio) ? unrealizedRatio * 100 : null,
+    unrealizedPnlUsd,
+    unrealizedPnlPct: Number.isFinite(unrealizedRatio)
+      ? unrealizedRatio * 100
+      : null,
     raw: row,
   };
+}
+
+function deriveCostBasisUsd({ currentValueUsd, unrealizedRatio, directUnrealizedUsd }) {
+  if (Number.isFinite(currentValueUsd) && Number.isFinite(unrealizedRatio)) {
+    const divisor = 1 + unrealizedRatio;
+    if (divisor > 0) return currentValueUsd / divisor;
+  }
+
+  if (Number.isFinite(currentValueUsd) && Number.isFinite(directUnrealizedUsd)) {
+    return currentValueUsd - directUnrealizedUsd;
+  }
+
+  return currentValueUsd;
 }
 
 function firstFinite(...values) {
@@ -153,21 +209,29 @@ async function getSolPriceUsd() {
   const timeout = setTimeout(() => controller.abort(), 8_000);
 
   try {
-    const res = await fetch(`https://api.dexscreener.com/tokens/v1/solana/${SOL_ADDRESS}`, {
-      headers: { accept: "application/json" },
-      signal: controller.signal,
-    });
+    const res = await fetch(
+      `https://api.dexscreener.com/tokens/v1/solana/${SOL_ADDRESS}`,
+      {
+        headers: { accept: "application/json" },
+        signal: controller.signal,
+      },
+    );
     if (!res.ok) throw new Error(`DexScreener SOL price ${res.status}`);
     const rows = await res.json();
     if (!Array.isArray(rows)) return null;
-    const best = rows.sort((a, b) => toNumber(b.liquidity?.usd, 0) - toNumber(a.liquidity?.usd, 0))[0];
+    const best = rows.sort(
+      (a, b) => toNumber(b.liquidity?.usd, 0) - toNumber(a.liquidity?.usd, 0),
+    )[0];
     return firstFinite(best?.priceUsd, best?.priceNative);
   } finally {
     clearTimeout(timeout);
   }
 }
 
-function normalizeSolBalance(raw, { solBalance = null, solPriceUsd = null } = {}) {
+function normalizeSolBalance(
+  raw,
+  { solBalance = null, solPriceUsd = null } = {},
+) {
   const directSol = firstFinite(
     raw?.sol_balance,
     raw?.solBalance,
@@ -185,8 +249,14 @@ function normalizeSolBalance(raw, { solBalance = null, solPriceUsd = null } = {}
     raw?.data?.sol_value_usd,
     raw?.data?.solValueUsd,
   );
-  const priceUsd = firstFinite(solPriceUsd, directUsd && directSol ? directUsd / directSol : null);
-  const valueUsd = firstFinite(directUsd, directSol && priceUsd ? directSol * priceUsd : null);
+  const priceUsd = firstFinite(
+    solPriceUsd,
+    directUsd && directSol ? directUsd / directSol : null,
+  );
+  const valueUsd = firstFinite(
+    directUsd,
+    directSol && priceUsd ? directSol * priceUsd : null,
+  );
 
   return {
     sol: directSol,

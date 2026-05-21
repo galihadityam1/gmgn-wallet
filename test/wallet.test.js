@@ -17,10 +17,10 @@ test("parseWalletAddresses parses comma-separated wallet addresses", () => {
   ]);
 });
 
-test("normalizeHolding derives unrealized USD from ratio", () => {
+test("normalizeHolding derives cost basis and unrealized USD from current value and ratio", () => {
   const holding = normalizeHolding({
-    usd_value: "10",
-    unrealized_profit_pnl: "0.25",
+    usd_value: "12.84",
+    unrealized_profit_pnl: "1.8625",
     token: {
       symbol: "test",
       price: "0.5",
@@ -28,8 +28,11 @@ test("normalizeHolding derives unrealized USD from ratio", () => {
     },
   });
 
-  assert.equal(holding.unrealizedPnlUsd, 2.5);
-  assert.equal(holding.unrealizedPnlPct, 25);
+  assert.equal(Number(holding.valueUsd.toFixed(2)), 4.49);
+  assert.equal(holding.currentValueUsd, 12.84);
+  assert.equal(holding.estimatedReturnUsd, 12.84);
+  assert.equal(Number(holding.unrealizedPnlUsd.toFixed(2)), 8.35);
+  assert.equal(holding.unrealizedPnlPct, 186.25);
   assert.equal(holding.marketCapUsd, 500_000);
 });
 
@@ -50,6 +53,7 @@ test("normalizeWalletHoldings includes SOL balance in total wallet value", () =>
       holdings: [
         {
           usd_value: "10",
+          unrealized_profit_pnl: "1",
           token: { symbol: "TOKEN" },
         },
       ],

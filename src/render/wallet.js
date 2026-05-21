@@ -58,8 +58,8 @@ function renderWalletSection(wallet) {
       pad("MY VALUE", 13),
       pad("EST. RETURN", 15),
       pad("MKT CAP", 13),
-      pad("REALIZED PNL", 15),
       pad("UNREALIZED PNL", 26),
+      pad("REALIZED PNL", 15),
     ].join(" "),
   );
   console.log("-".repeat(108));
@@ -76,8 +76,8 @@ function renderWalletSection(wallet) {
         pad(formatUsd(holding.valueUsd), 13),
         pad(formatUsd(holding.estimatedReturnUsd), 15),
         pad(formatUsd(holding.marketCapUsd), 13),
-        pad(colorPct(holding.realizedPnlPct), 15),
         pad(formatUnrealized(holding), 26),
+        pad(colorPct(holding.realizedPnlPct), 15),
       ].join(" "),
     );
   });

@@ -236,7 +236,7 @@ function renderWalletHoldingsTable(wallet) {
   return `${summary}
     <table>
       <thead><tr>
-        <th>#</th><th>Symbol</th><th>My Value</th><th>Est. Return</th><th>Mkt Cap</th><th>Realized PnL</th><th>Unrealized PnL</th>
+        <th>#</th><th>Symbol</th><th>My Value</th><th>Est. Return</th><th>Mkt Cap</th><th>Unrealized PnL</th><th>Realized PnL</th>
       </tr></thead>
       <tbody>${wallet.holdings
         .map(
@@ -246,8 +246,8 @@ function renderWalletHoldingsTable(wallet) {
             <td>${escapeHtml(formatUsd(holding.valueUsd))}</td>
             <td>${escapeHtml(formatUsd(holding.estimatedReturnUsd))}</td>
             <td>${escapeHtml(formatUsd(holding.marketCapUsd))}</td>
-            <td class="${pnlClass(holding.realizedPnlPct)}">${escapeHtml(formatPct(holding.realizedPnlPct))}</td>
             <td class="${walletPnlClass(holding)}">${escapeHtml(formatWalletUnrealized(holding))}</td>
+            <td class="${pnlClass(holding.realizedPnlPct)}">${escapeHtml(formatPct(holding.realizedPnlPct))}</td>
           </tr>`,
         )
         .join("")}</tbody>

@@ -1,9 +1,16 @@
-const { formatPrice, formatSol, formatUsd, shortAddress } = require("../utils/format");
+const {
+  formatPrice,
+  formatSol,
+  formatUsd,
+  shortAddress,
+} = require("../utils/format");
 const { percent } = require("../utils/number");
 const { formatPlanValue } = require("../utils/trade-plan-format");
 
 function page(title, body, { refreshSeconds = null } = {}) {
-  const refresh = refreshSeconds ? `<meta http-equiv="refresh" content="${escapeHtml(refreshSeconds)}">` : "";
+  const refresh = refreshSeconds
+    ? `<meta http-equiv="refresh" content="${escapeHtml(refreshSeconds)}">`
+    : "";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -132,7 +139,11 @@ function renderTokenDetail(analysis, storage) {
         <section class="panel"><h2>Status</h2><p class="status ${escapeHtml(analysis.status)}">${escapeHtml(analysis.status)}</p><p>Filter: ${escapeHtml(analysis.filterResult)}<br>Score: ${score.total}/100</p></section>
         <section class="panel"><h2>Market</h2><p>Price: ${escapeHtml(formatPrice(market.priceUsd))}<br>Liquidity: ${escapeHtml(formatUsd(market.liquidityUsd))}<br>24h Volume: ${escapeHtml(formatUsd(market.volume24h))}<br>Market Cap/FDV: ${escapeHtml(formatUsd(market.marketCap || market.fdv))}<br>Age: ${Number.isFinite(market.ageDays) ? escapeHtml(`${market.ageDays.toFixed(1)}d`) : "-"}</p></section>
         <section class="panel"><h2>Trade Plan</h2>${planHtml}</section>
-        <section class="panel"><h2>Score Breakdown</h2><ul>${Object.entries(score.breakdown).map(([key, value]) => `<li>${escapeHtml(key)}: ${value}</li>`).join("")}</ul></section>
+        <section class="panel"><h2>Score Breakdown</h2><ul>${Object.entries(
+          score.breakdown,
+        )
+          .map(([key, value]) => `<li>${escapeHtml(key)}: ${value}</li>`)
+          .join("")}</ul></section>
         <section class="panel"><h2>Safety</h2><p>Passed: ${safety.passed ? "yes" : "no"}</p><ul>${(safety.reasons.length ? safety.reasons : ["No safety blockers found"]).map((reason) => `<li>${escapeHtml(reason)}</li>`).join("")}</ul></section>
         <section class="panel"><h2>Technical</h2><p>Setup: ${technical.setup ? "yes" : "no"}<br>Trigger: ${technical.entryTrigger ? "yes" : "no"}<br>Support: ${escapeHtml(formatPrice(technical.support))}<br>Resistance: ${escapeHtml(formatPrice(technical.resistance))}<br>EMA 9/21: ${escapeHtml(formatPrice(technical.indicators?.ema?.ema9))} / ${escapeHtml(formatPrice(technical.indicators?.ema?.ema21))}<br>MA 20/50: ${escapeHtml(formatPrice(technical.indicators?.ma?.ma20))} / ${escapeHtml(formatPrice(technical.indicators?.ma?.ma50))}<br>Boll 20/2: ${escapeHtml(formatPrice(technical.indicators?.bollinger?.lower))} / ${escapeHtml(formatPrice(technical.indicators?.bollinger?.middle))} / ${escapeHtml(formatPrice(technical.indicators?.bollinger?.upper))} (${escapeHtml(technical.indicators?.bollinger?.position || "-")})<br>SAR: ${escapeHtml(formatPrice(technical.indicators?.sar?.value))} (${escapeHtml(technical.indicators?.sar?.trend || "-")})</p><ul>${[...technical.reasons, ...technical.warnings].map((reason) => `<li>${escapeHtml(reason)}</li>`).join("")}</ul></section>
       </div>
@@ -172,10 +183,16 @@ function renderHistoryPage(rows, storage) {
   const body = !storage.enabled
     ? `<p class="warn">History unavailable: ${escapeHtml(storage.reason)}</p>`
     : `<table><thead><tr><th>Time</th><th>Token</th><th>Status</th><th>Filter</th><th>Score</th><th>Reason</th></tr></thead><tbody>${rows
-        .map((row) => `<tr><td>${escapeHtml(new Date(row.created_at).toLocaleString())}</td><td>${escapeHtml(row.symbol || "UNKNOWN")}<br><code>${escapeHtml(shortAddress(row.token_address))}</code></td><td class="status ${escapeHtml(row.status)}">${escapeHtml(row.status)}</td><td>${escapeHtml(row.filter_result)}</td><td>${row.score}</td><td>${escapeHtml(Array.isArray(row.reasons) ? row.reasons[0] || "" : "")}</td></tr>`)
+        .map(
+          (row) =>
+            `<tr><td>${escapeHtml(new Date(row.created_at).toLocaleString())}</td><td>${escapeHtml(row.symbol || "UNKNOWN")}<br><code>${escapeHtml(shortAddress(row.token_address))}</code></td><td class="status ${escapeHtml(row.status)}">${escapeHtml(row.status)}</td><td>${escapeHtml(row.filter_result)}</td><td>${row.score}</td><td>${escapeHtml(Array.isArray(row.reasons) ? row.reasons[0] || "" : "")}</td></tr>`,
+        )
         .join("")}</tbody></table>`;
 
-  return page("History", `<header><h1>History</h1><nav><a href="/">Dashboard</a></nav></header><main>${body}</main>`);
+  return page(
+    "History",
+    `<header><h1>History</h1><nav><a href="/">Dashboard</a></nav></header><main>${body}</main>`,
+  );
 }
 
 function renderWalletPage(result, config) {
@@ -219,7 +236,7 @@ function renderWalletHoldingsTable(wallet) {
   return `${summary}
     <table>
       <thead><tr>
-        <th>#</th><th>Symbol</th><th>My Value</th><th>Mkt Cap</th><th>Est. Return</th><th>Realized PnL</th><th>Unrealized PnL</th>
+        <th>#</th><th>Symbol</th><th>My Value</th><th>Est. Return</th><th>Mkt Cap</th><th>Realized PnL</th><th>Unrealized PnL</th>
       </tr></thead>
       <tbody>${wallet.holdings
         .map(
@@ -227,8 +244,8 @@ function renderWalletHoldingsTable(wallet) {
             <td>${index + 1}</td>
             <td>${escapeHtml(holding.symbol || "UNKNOWN")}</td>
             <td>${escapeHtml(formatUsd(holding.valueUsd))}</td>
-            <td>${escapeHtml(formatUsd(holding.marketCapUsd))}</td>
             <td>${escapeHtml(formatUsd(holding.estimatedReturnUsd))}</td>
+            <td>${escapeHtml(formatUsd(holding.marketCapUsd))}</td>
             <td class="${pnlClass(holding.realizedPnlPct)}">${escapeHtml(formatPct(holding.realizedPnlPct))}</td>
             <td class="${walletPnlClass(holding)}">${escapeHtml(formatWalletUnrealized(holding))}</td>
           </tr>`,
@@ -239,12 +256,16 @@ function renderWalletHoldingsTable(wallet) {
 
 function formatWebSolBalance(solBalance) {
   if (!Number.isFinite(solBalance?.sol)) return "-";
-  const usd = Number.isFinite(solBalance.valueUsd) ? ` / ${formatUsd(solBalance.valueUsd)}` : "";
+  const usd = Number.isFinite(solBalance.valueUsd)
+    ? ` / ${formatUsd(solBalance.valueUsd)}`
+    : "";
   return `${solBalance.sol.toFixed(4)} SOL${usd}`;
 }
 
 function formatWalletUnrealized(holding) {
-  const usd = Number.isFinite(holding.unrealizedPnlUsd) ? formatUsd(holding.unrealizedPnlUsd) : "-";
+  const usd = Number.isFinite(holding.unrealizedPnlUsd)
+    ? formatUsd(holding.unrealizedPnlUsd)
+    : "-";
   const pct = formatPct(holding.unrealizedPnlPct);
   return `${usd} / ${pct}`;
 }

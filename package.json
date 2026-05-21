@@ -1,0 +1,31 @@
+{
+  "name": "gmgn-terminal-scanner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Conservative intraday GMGN token scanner and terminal trading assistant.",
+  "main": "src/cli.js",
+  "bin": {
+    "gmgn-scanner": "bin/gmgn-scanner.js"
+  },
+  "scripts": {
+    "scan": "node bin/gmgn-scanner.js scan",
+    "scan:once": "node bin/gmgn-scanner.js scan --once",
+    "wallet": "node bin/gmgn-scanner.js wallet",
+    "wallet:once": "node bin/gmgn-scanner.js wallet --once",
+    "dev": "node bin/gmgn-scanner.js web",
+    "web": "node bin/gmgn-scanner.js web",
+    "config": "node bin/gmgn-scanner.js config",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ollama": "^0.6.3",
+    "zod": "^4.4.3"
+  },
+  "optionalDependencies": {
+    "pg": "^8.13.1"
+  }
+}
